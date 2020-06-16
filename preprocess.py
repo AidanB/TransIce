@@ -26,6 +26,8 @@ def extract_from_dir(dir):
     for is_file in is_files:
         all_is_sents.extend(extract_from_file(is_file))
 
+    return all_en_sents, all_is_sents
+
 
 def extract_from_file(filepath):
     tree = ET.parse(filepath)
@@ -47,5 +49,17 @@ def extract_from_file(filepath):
 
     return all_sents
 
-extract_from_dir(subdirs[0])
+def extract_all(verbose=False):
+    all_en = []
+    all_is = []
+
+    for dir in subdirs:
+        if verbose:
+            print("Processing file {}".format(dir))
+        temp_en,temp_is = extract_from_dir(dir)
+        all_en.extend(temp_en)
+        all_is.extend(temp_is)
+        del temp_en,temp_is
+
+extract_all(verbose=True)
 
