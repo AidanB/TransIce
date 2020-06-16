@@ -18,9 +18,14 @@ def extract_from_dir(dir):
     en_files = sorted(en_files)
     is_files = sorted(is_files)
 
-    a = extract_from_file(en_files[0])
-    for sent in a:
-        print(sent)
+    all_en_sents = []
+    all_is_sents = []
+
+    for en_file in en_files:
+        all_en_sents.extend(extract_from_file(en_file))
+    for is_file in is_files:
+        all_is_sents.extend(extract_from_file(is_file))
+
 
 def extract_from_file(filepath):
     tree = ET.parse(filepath)
@@ -29,25 +34,17 @@ def extract_from_file(filepath):
     xml_sents = root.iter(namespace+"seg")
 
     all_sents = []
-    for i,sent in enumerate(xml_sents):
+    for sent in xml_sents:
         top_of_sent = sent[0]
+        i = sent.attrib["id"] # extract index from tag. should be equivalent to iteration index but better safe than sorry
 
         tokens = []
 
         for token in top_of_sent:
             tokens.append(token.text)
 
-        all_sents.append((i,tokens))
+        all_sents.append((sent.attrib["id"],tokens))
 
-    """
-    text = root.iter(namespace+"text")
-
-    for child in text:
-        for subchild in child:
-            print(subchild)
-
-    #xml_sents = tree.iter("seg")
-    """
     return all_sents
 
 extract_from_dir(subdirs[0])
