@@ -1,3 +1,5 @@
+# needs to deal with the errant xml file in the directory, for cleanliness' sake
+
 import xml.etree.ElementTree as ET
 import re
 from glob import glob
