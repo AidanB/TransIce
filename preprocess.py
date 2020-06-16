@@ -2,10 +2,11 @@ import xml.etree.ElementTree as ET
 import re
 from glob import glob
 from os import listdir
-from os.path import isdir, isfile
+from os.path import basename
 
 # top level dir for xml files
 top_dir = "D:/ParIce1.1/xml/"
+dest_dir = "D:/processed/"
 
 # list of subdirs
 subdirs = listdir(top_dir)
@@ -50,16 +51,16 @@ def extract_from_file(filepath):
     return all_sents
 
 def extract_all(verbose=False):
-    all_en = []
-    all_is = []
-
     for dir in subdirs:
         if verbose:
             print("Processing file {}".format(dir))
         temp_en,temp_is = extract_from_dir(dir)
-        all_en.extend(temp_en)
-        all_is.extend(temp_is)
-        del temp_en,temp_is
+        with open(dest_dir+"en_"+basename(dir),"w+",encoding="utf8") as en_targ:
+            for sent in temp_en:
+                print(sent,file=en_targ)
+        with open(dest_dir+"is_"+basename(dir),"w+",encoding="utf8") as is_targ:
+            for sent in temp_is:
+                print(sent,file=is_targ)
 
 extract_all(verbose=True)
 
