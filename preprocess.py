@@ -48,7 +48,7 @@ def extract_from_file(filepath):
         for token in top_of_sent:
             tokens.append(token.text)
 
-        all_sents.append((sent.attrib["id"],tokens))
+        all_sents.append((i,tokens))
 
     return all_sents
 

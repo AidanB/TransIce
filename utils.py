@@ -4,10 +4,11 @@ import re
 from random import shuffle
 
 extracted_dir = "D:/processed/"
+target_dir = "D:/train_test"
 saved_list_handler1 = re.compile(r"(?:\('[0-9]+', \[)(.+)(?:\]\))") # extracts tokens
 saved_list_handler2 = re.compile(r"^(?:\(\')([0-9]+)(?:\')") # extracts sent id number
 
-def create_train_split(split=0.9):
+def create_train_split(split=0.9,verbose=False):
     en_filelist = glob(extracted_dir + "en_*")
     is_filelist = glob(extracted_dir + "is_*")
 
@@ -17,6 +18,8 @@ def create_train_split(split=0.9):
         for filename in filelist:
             with open(filename,"r",encoding="utf8") as file:
                 lines = [line.strip() for line in file.readlines()]
+                if verbose:
+                    print("{0}: {1}".format(filename, len(lines)))
                 for line in lines:
                     try:
                         key = saved_list_handler2.findall(line)[0]
@@ -36,10 +39,10 @@ def create_train_split(split=0.9):
     test_data = paired[split_num:]
 
     def save_files():
-        train_file_en = open(extracted_dir+"en_training","w+",encoding="utf8")
-        train_file_is = open(extracted_dir+"is_training","w+",encoding="utf8")
-        test_file_en = open(extracted_dir+"en_test","w+",encoding="utf8")
-        test_file_is = open(extracted_dir+"is_test","w+",encoding="utf8")
+        train_file_en = open(target_dir+"en_training","w+",encoding="utf8")
+        train_file_is = open(target_dir+"is_training","w+",encoding="utf8")
+        test_file_en = open(target_dir+"en_test","w+",encoding="utf8")
+        test_file_is = open(target_dir+"is_test","w+",encoding="utf8")
 
         all_files = [train_file_en,train_file_is,test_file_en,test_file_is]
 
@@ -94,6 +97,6 @@ def get_vocab(verbose=False):
 
 
 
-create_train_split()
+create_train_split(verbose=True)
 
 #get_vocab(verbose=True)
