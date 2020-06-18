@@ -41,16 +41,11 @@ def create_train_split(split=0.9,verbose=False):
 
     def save_files():
         train_file_en = open(target_dir+"en_training","w+",encoding="utf8")
-        #train_file_en2 = open(target_dir+"en_training2","w+",encoding="utf8") #debug
         train_file_is = open(target_dir+"is_training","w+",encoding="utf8")
-        #train_file_is2 = open(target_dir+"is_training2","w+",encoding="utf8") #debug
         test_file_en = open(target_dir+"en_test","w+",encoding="utf8")
         test_file_is = open(target_dir+"is_test","w+",encoding="utf8")
 
-        #all_files = [train_file_en,train_file_is,test_file_en,test_file_is]
-
-        #for i,line in enumerate(training_data[0:1000000]): # enumerated for debugging purposes, remember to remove
-        for i,line in enumerate(training_data): # enumerated for debugging purposes, remember to remove
+        for line in training_data: # enumerated for debugging purposes, remember to remove
             if not saved_list_handler2.findall(line[0])[0] == saved_list_handler2.findall(line[1])[0]:
                 print(line)
             if not len(line) == 2:
@@ -61,36 +56,12 @@ def create_train_split(split=0.9,verbose=False):
 
         train_file_en.flush()
         train_file_en.close()
-
-
         train_file_is.flush()
         train_file_is.close()
-
-
-
-        """
-        # debug
-        for i,line in enumerate(training_data[1000000:]): # enumerated for debugging purposes, remember to remove
-            if not saved_list_handler2.findall(line[0])[0] == saved_list_handler2.findall(line[1])[0]:
-                print(line)
-            if not len(line) == 2:
-                print(line)
-            print(line[0],file=train_file_en2)
-            print(line[1],file=train_file_is2)
-        """
-
-        #train_file_en2.close()
-        #train_file_is2.close()
-
-        print(training_data[-5:]) #debug
 
         for line in test_data:
             print(line[0],file=test_file_en)
             print(line[1],file=test_file_is)
-
-        #for file in all_files:
-            #file.close()
-
 
         test_file_en.close()
         test_file_is.close()
