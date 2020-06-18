@@ -4,9 +4,9 @@ import re
 from random import shuffle
 
 extracted_dir = "D:/processed/"
-target_dir = "D:/train_test"
+target_dir = "D:/train_test/"
 saved_list_handler1 = re.compile(r"(?:\('[0-9]+', \[)(.+)(?:\]\))") # extracts tokens
-saved_list_handler2 = re.compile(r"^(?:\(\')([0-9]+)(?:\')") # extracts sent id number
+saved_list_handler2 = re.compile(r"(?:\(')([0-9]+ .+?\.xml)") # extracts sent id number & doc title
 
 def create_train_split(split=0.9,verbose=False):
     en_filelist = glob(extracted_dir + "en_*")
