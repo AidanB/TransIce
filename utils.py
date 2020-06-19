@@ -2,6 +2,8 @@ from glob import glob
 from collections import defaultdict
 import re
 from random import shuffle
+from os.path import basename
+import pickle
 
 extracted_dir = "D:/processed/"
 target_dir = "D:/train_test/"
@@ -78,7 +80,7 @@ def process_saved_list(inLine):
 
     return clean_tokens
 
-def get_vocab(verbose=False):
+def get_vocab(unk_thresh=2,verbose=False):
 
     en_train = target_dir+"en_training"
     is_train = target_dir+"is_training"
@@ -96,21 +98,71 @@ def get_vocab(verbose=False):
                     vocab.add(token)
                     count_vocab[token] += 1
 
-        return vocab, count_vocab
+        counter = 2 # 0 for pad, 1 for unk
+        enc_vocab = {}
+        for word in vocab:
+            if count_vocab[word] < unk_thresh:
+                enc_vocab[word] = 1
+            else:
+                enc_vocab[word] = counter
+                counter += 1
 
-    en_vocab, en_count = extractor(en_train)
-    is_vocab, is_count = extractor(is_train)
+        return enc_vocab
+
+    en_vocab = extractor(en_train)
+    is_vocab = extractor(is_train)
 
     print(en_vocab) # debug
     print(is_vocab) # debug
 
-    return en_vocab, en_count, is_vocab, is_count
+    return en_vocab, is_vocab
 
-def encode(unk_thresh=2):
+def encode(vocabs, unk_thresh=2,max_length=40):
     files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
+    langs = [0,0,1,1]
 
-    
+    def enc_file(filename,lang):
+        all_enc = []
+        biggest_len = 0
+        with open(filename,"r",encoding="utf8") as file:
+            for line in file:
+                enc = []
+                tokens = process_saved_list(line)
+                for token in tokens:
+                    if token in vocabs[lang]:
+                        enc.append(vocabs[lang][token])
+                    else:
+                        enc.append(1)
+                all_enc.append(enc)
+
+                if len(enc) > biggest_len:
+                    biggest_len = len(enc)
+
+
+
+        if biggest_len > max_length:
+            biggest_len = max_length
+        for enc_sent in all_enc:
+            if len(enc_sent) > biggest_len:
+                enc_sent = enc_sent[0:biggest_len]
+            elif len(enc_sent) < biggest_len:
+                enc_sent = [0 for x in range(biggest_len-len(enc))] + enc_sent
+
+        return all_enc
+
+    encoded_files = []
+    for i,filename in enumerate(files):
+        encoded_files.append(enc_file(filename,langs[i]))
+
+    for i,enc in enumerate(encoded_files):
+        filename = "enc_"+basename(files[i])
+
+        with open(target_dir+filename,"wb+") as file:
+            pickle.dump(enc,file)
+
+
 
 #create_train_split(verbose=True)
 
-en_vocab, en_count, is_vocab, is_count = get_vocab(verbose=True)
+en_vocab, is_vocab = get_vocab(verbose=True)
+encode([en_vocab,is_vocab])
