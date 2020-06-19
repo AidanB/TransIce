@@ -5,7 +5,7 @@ from random import shuffle
 
 extracted_dir = "D:/processed/"
 target_dir = "D:/train_test/"
-saved_list_handler1 = re.compile(r"(?:\('[0-9]+', \[)(.+)(?:\]\))") # extracts tokens
+saved_list_handler1 = re.compile(r"(?:\('[0-9]+ .+?\.xml', \[)(.+)(?:\]\))") # extracts tokens
 saved_list_handler2 = re.compile(r"(?:\(')([0-9]+ .+?\.xml)") # extracts sent id number & doc title
 
 def create_train_split(split=0.9,verbose=False):
@@ -70,42 +70,47 @@ def create_train_split(split=0.9,verbose=False):
 
 
 
+def process_saved_list(inLine):
+    just_tokens_from_list = saved_list_handler1.findall(inLine)[0]
+    split_tokens = just_tokens_from_list.split(", ")
 
+    clean_tokens = [x[1:-1].lower() for x in split_tokens]
+
+    return clean_tokens
 
 def get_vocab(verbose=False):
 
-    en_filelist = glob(extracted_dir+"en_*")
-    is_filelist = glob(extracted_dir+"is_*")
+    en_train = target_dir+"en_training"
+    is_train = target_dir+"is_training"
 
-    def process_saved_list(inLine):
-        just_tokens_from_list = saved_list_handler1.findall(inLine)[0]
-        split_tokens = just_tokens_from_list.split(", ")
-
-        clean_tokens = [x[1:-1].lower() for x in split_tokens]
-
-        return clean_tokens
-
-    def extractor(filelist):
+    def extractor(filename):
         vocab = set()
         count_vocab = defaultdict(lambda: 0)
-        for filename in filelist:
-            if verbose:
-                print("Processing file: {}".format(filename))
-            with open(filename,"r",encoding="utf8") as file:
-                lines = file.readlines()
-                for line in lines:
-                    processed = process_saved_list(line)
-                    for token in processed:
-                        vocab.add(token)
-                        count_vocab[token] += 1
+        if verbose:
+            print("Processing file: {}".format(filename))
+        with open(filename,"r",encoding="utf8") as file:
+            lines = file.readlines()
+            for line in lines:
+                processed = process_saved_list(line)
+                for token in processed:
+                    vocab.add(token)
+                    count_vocab[token] += 1
 
         return vocab, count_vocab
 
-    en_vocab, en_count = extractor(en_filelist)
-    is_vocab, is_count = extractor(is_filelist)
+    en_vocab, en_count = extractor(en_train)
+    is_vocab, is_count = extractor(is_train)
 
+    print(en_vocab) # debug
+    print(is_vocab) # debug
 
+    return en_vocab, en_count, is_vocab, is_count
 
-create_train_split(verbose=True)
+def encode(unk_thresh=2):
+    files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
 
-#get_vocab(verbose=True)
+    
+
+#create_train_split(verbose=True)
+
+en_vocab, en_count, is_vocab, is_count = get_vocab(verbose=True)
