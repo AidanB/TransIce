@@ -121,9 +121,9 @@ def encode(vocabs, unk_thresh=2,max_length=40):
     files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
     langs = [0,0,1,1]
 
+    biggest_len = 0
     def enc_file(filename,lang):
         all_enc = []
-        biggest_len = 0
         with open(filename,"r",encoding="utf8") as file:
             for line in file:
                 enc = []
