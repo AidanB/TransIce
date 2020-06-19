@@ -121,7 +121,6 @@ def encode(vocabs, unk_thresh=2,max_length=40):
     files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
     langs = [0,0,1,1]
 
-    biggest_len = 0
     def enc_file(filename,lang):
         all_enc = []
         with open(filename,"r",encoding="utf8") as file:
@@ -133,20 +132,13 @@ def encode(vocabs, unk_thresh=2,max_length=40):
                         enc.append(vocabs[lang][token])
                     else:
                         enc.append(1)
+
+                if len(enc) < max_length:
+                    enc = [0 for x in range(max_length - len(enc))] + enc
+                elif len(enc) > max_length:
+                    enc = enc[0:max_length]
+
                 all_enc.append(enc)
-
-                if len(enc) > biggest_len:
-                    biggest_len = len(enc)
-
-
-
-        if biggest_len > max_length:
-            biggest_len = max_length
-        for enc_sent in all_enc:
-            if len(enc_sent) > biggest_len:
-                enc_sent = enc_sent[0:biggest_len]
-            elif len(enc_sent) < biggest_len:
-                enc_sent = [0 for x in range(biggest_len-len(enc))] + enc_sent
 
         return all_enc
 
