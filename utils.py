@@ -152,6 +152,11 @@ def encode(vocabs, unk_thresh=2,max_length=40):
         with open(target_dir+filename,"wb+") as file:
             pickle.dump(enc,file)
 
+    vocab_names = ["en_vocab","is_vocab"]
+    for i,name in enumerate(vocab_names):
+        with open(target_dir+name,"wb+") as vocab_file:
+            pickle.dump(vocabs[i],vocab_file)
+
 
 
 #create_train_split(verbose=True)
