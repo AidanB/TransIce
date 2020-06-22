@@ -98,7 +98,7 @@ def get_vocab(unk_thresh=2,verbose=False):
                     vocab.add(token)
                     count_vocab[token] += 1
 
-        counter = 2 # 0 for pad, 1 for unk
+        counter = 4 # 0 for pad, 1 for unk, 2 for <s>, 3 for </s>
         enc_vocab = {}
         for word in vocab:
             if count_vocab[word] < unk_thresh:
@@ -117,15 +117,18 @@ def get_vocab(unk_thresh=2,verbose=False):
 
     return en_vocab, is_vocab
 
+# max length includes <s> and </s> tokens
+# i.e. max length 40 contains 38 word tokens
 def encode(vocabs, unk_thresh=2,max_length=40):
     files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
     langs = [0,0,1,1]
 
     def enc_file(filename,lang):
         all_enc = []
+        adj_max_len = max_length - 2 # dummy variable to account for BOS/EOS tokens so I don't have to say max_length - 2 every time
         with open(filename,"r",encoding="utf8") as file:
             for line in file:
-                enc = []
+                enc = [2]
                 tokens = process_saved_list(line)
                 for token in tokens:
                     if token in vocabs[lang]:
@@ -133,10 +136,12 @@ def encode(vocabs, unk_thresh=2,max_length=40):
                     else:
                         enc.append(1)
 
-                if len(enc) < max_length:
-                    enc = [0 for x in range(max_length - len(enc))] + enc
-                elif len(enc) > max_length:
-                    enc = enc[0:max_length]
+                if len(enc) < adj_max_len:
+                    enc = [0 for x in range(adj_max_len - len(enc))] + enc
+                elif len(enc) > adj_max_len:
+                    enc = enc[0:adj_max_len]
+
+                enc.append(3)
 
                 all_enc.append(enc)
 
