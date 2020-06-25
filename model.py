@@ -7,9 +7,18 @@ tt_dir = "D:/train_test/"
 files = ["enc_en_training", "enc_en_test", "enc_is_training", "enc_is_test"]
 vocab_files = ["en_vocab", "is_vocab"]
 
-def get_encoded(verbose=False):
+def get_encoded(verbose=False,subset=None):
+    global files
+    filelist_copy = []
+    if subset:
+        for filename in files:
+            filelist_copy.append("{0}{1}-{2}".format(filename,subset[0],subset[1]))
+            files = filelist_copy
+    else:
+        filelist_copy = files
+
     arrs = {}
-    for filename in files:
+    for filename in filelist_copy:
         if verbose:
             print("Loading encoded file {}".format(filename))
         with open(tt_dir+filename,"rb") as file:
@@ -29,7 +38,7 @@ def get_encoded(verbose=False):
 
     return arrs, vocabs[0], vocabs[1]
 
-files, en_vocab, is_vocab = get_encoded(verbose=True)
+enc_files, en_vocab, is_vocab = get_encoded(verbose=True,subset=[200000,50000])
 
 # hyperparameters
 BUFFER_SIZE = 20000
@@ -47,12 +56,12 @@ dropout_rate = 0.1
 EPOCHS = 20
 
 # datasets
-train_dataset = tf.data.Dataset.from_tensor_slices((files["enc_en_training"], files["enc_is_training"]))
+train_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[0]], enc_files[files[2]]))
 train_dataset = train_dataset.cache()
 train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE,padded_shapes=([None],[None]))
 train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-val_dataset = tf.data.Dataset.from_tensor_slices((files["enc_en_test"], files["enc_is_test"]))
+val_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[1]], enc_files[files[3]]))
 val_dataset = val_dataset.padded_batch(BATCH_SIZE,padded_shapes=([None],[None]))
 
 
