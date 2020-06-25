@@ -101,38 +101,49 @@ def get_vocab(unk_thresh=2,verbose=False):
         counter = 4 # 0 for pad, 1 for unk, 2 for <s>, 3 for </s>
         enc_vocab = {}
         for word in vocab:
-            if count_vocab[word] < unk_thresh:
-                enc_vocab[word] = 1
-            else:
-                enc_vocab[word] = counter
-                counter += 1
+            enc_vocab[word] = counter
+            counter += 1
 
-        return enc_vocab
+        return enc_vocab, count_vocab
 
-    en_vocab = extractor(en_train)
-    is_vocab = extractor(is_train)
+    en_vocab, en_count = extractor(en_train)
+    is_vocab, is_count = extractor(is_train)
 
     print(en_vocab) # debug
     print(is_vocab) # debug
 
-    return en_vocab, is_vocab
+    return en_vocab, is_vocab, en_vocab, is_vocab
 
 # max length includes <s> and </s> tokens
 # i.e. max length 40 contains 38 word tokens
-def encode(vocabs, unk_thresh=2,max_length=40):
+def encode(vocabs, counts, unk_thresh=2,max_length=40,max_sents=None):
     files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
+    for_unk = [target_dir + "en_training", target_dir + "is_training"]
     langs = [0,0,1,1]
+    if max_sents:
+        max_train = max_sents[0]
+        max_test = max_sents[1]
 
     def enc_file(filename,lang):
         all_enc = []
         adj_max_len = max_length - 2 # dummy variable to account for BOS/EOS tokens so I don't have to say max_length - 2 every time
+
+        unk_code = True if filename in for_unk else False # should the file substitute unk tokens?
+        break_thresh = max_train if unk_code else max_test # which max sents to use
+
         with open(filename,"r",encoding="utf8") as file:
-            for line in file:
+            for i,line in enumerate(file):
+                if max_sents:
+                    if i > break_thresh:
+                        return all_enc
                 enc = [2]
                 tokens = process_saved_list(line)
                 for token in tokens:
                     if token in vocabs[lang]:
-                        enc.append(vocabs[lang][token])
+                        if unk_code and counts[lang][token] < unk_thresh:
+                            enc.append(1)
+                        else:
+                            enc.append(vocabs[lang][token])
                     else:
                         enc.append(1)
 
@@ -153,6 +164,8 @@ def encode(vocabs, unk_thresh=2,max_length=40):
 
     for i,enc in enumerate(encoded_files):
         filename = "enc_"+basename(files[i])
+        if max_sents:
+            filename += "{0}-{1}".format(max_sents[0],max_sents[1])
 
         with open(target_dir+filename,"wb+") as file:
             pickle.dump(enc,file)
@@ -166,5 +179,5 @@ def encode(vocabs, unk_thresh=2,max_length=40):
 
 #create_train_split(verbose=True)
 
-en_vocab, is_vocab = get_vocab(verbose=True)
-encode([en_vocab,is_vocab])
+en_vocab, is_vocab, en_count, is_count = get_vocab(verbose=True)
+encode([en_vocab,is_vocab],[en_count,is_count],max_sents=[200000,50000])
