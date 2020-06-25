@@ -14,7 +14,8 @@ def get_encoded(verbose=False):
             print("Loading encoded file {}".format(filename))
         with open(tt_dir+filename,"rb") as file:
             temp = pickle.load(file)
-            arr = np.array(temp)
+            #arr = np.array(temp)
+            arr = tf.cast(temp,dtype=tf.int64)
             arrs[filename] = arr
 
     vocabs = []
@@ -46,13 +47,13 @@ dropout_rate = 0.1
 EPOCHS = 20
 
 # datasets
-train_dataset = tf.data.Datset.from_tensor_slices((files["enc_en_training"], files["enc_is_training"]))
+train_dataset = tf.data.Dataset.from_tensor_slices((files["enc_en_training"], files["enc_is_training"]))
 train_dataset = train_dataset.cache()
-train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE)
+train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE,padded_shapes=([None],[None]))
 train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-val_dataset = tf.data.Datset.from_tensor_slices((files["enc_en_test"], files["enc_is_test"]))
-val_dataset = val_dataset.padded_batch(BATCH_SIZE)
+val_dataset = tf.data.Dataset.from_tensor_slices((files["enc_en_test"], files["enc_is_test"]))
+val_dataset = val_dataset.padded_batch(BATCH_SIZE,padded_shapes=([None],[None]))
 
 
 # helper fxn, extracts most of the math for the positional encoding
