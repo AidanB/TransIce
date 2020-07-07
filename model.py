@@ -422,17 +422,21 @@ def create_masks(inp, tar):
 
     return enc_padding_mask, combined_mask, dec_padding_mask
 
-checkpoint_path = "../checkpoints/train"
+checkpoint_path = "C:/Users/Aidan/Documents/model checkpoints/train"
 
 ckpt = tf.train.Checkpoint(transformer=transformer,
                            optimizer=optimizer)
 
 ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
+save_model = True
 
 # if a checkpoint exists, restore the latest checkpoint.
 if ckpt_manager.latest_checkpoint:
   ckpt.restore(ckpt_manager.latest_checkpoint)
   print ('Latest checkpoint restored!!')
+  if save_model:
+      #transformer.save(tt_dir + "saved_model")
+    tf.saved_model.save(transformer,tt_dir+"saved_model")
 
 # The @tf.function trace-compiles train_step into a TF graph for faster
 # execution. The function specializes to the precise shape of the argument
@@ -467,7 +471,6 @@ def train_step(inp, tar):
     train_loss(loss)
     train_accuracy(tar_real, predictions)
 
-
 for epoch in range(EPOCHS):
     start = time.time()
 
@@ -482,10 +485,12 @@ for epoch in range(EPOCHS):
             print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(
                 epoch + 1, batch, train_loss.result(), train_accuracy.result()))
 
-    if (epoch + 1) % 5 == 0:
+    if (epoch + 1) % 1 == 0:
         ckpt_save_path = ckpt_manager.save()
         print('Saving checkpoint for epoch {} at {}'.format(epoch + 1,
                                                             ckpt_save_path))
+
+
 
     print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1,
                                                         train_loss.result(),
