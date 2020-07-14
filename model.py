@@ -7,7 +7,7 @@ import time
 
 with open("configs","r") as config_file:
      lines = config_file.readlines()
-     tt_dir = lines[0].strip().split("= ")
+     tt_dir = lines[0].strip().split("= ")[1].strip("\"")
 
 files = ["enc_en_training", "enc_en_test", "enc_is_training", "enc_is_test"]
 vocab_files = ["en_vocab", "is_vocab"]
