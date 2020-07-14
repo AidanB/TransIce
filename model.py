@@ -3,42 +3,14 @@ import numpy as np
 import pickle
 import time
 
-tt_dir = "D:/train_test/"
+#tt_dir = "D:/train_test/"
+
+with open("configs","r") as config_file:
+     lines = config_file.readlines()
+     tt_dir = lines[0].strip().split("= ")
+
 files = ["enc_en_training", "enc_en_test", "enc_is_training", "enc_is_test"]
 vocab_files = ["en_vocab", "is_vocab"]
-
-def get_encoded(verbose=False,subset=None):
-    global files
-    filelist_copy = []
-    if subset:
-        for filename in files:
-            filelist_copy.append("{0}{1}-{2}".format(filename,subset[0],subset[1]))
-            files = filelist_copy
-    else:
-        filelist_copy = files
-
-    arrs = {}
-    for filename in filelist_copy:
-        if verbose:
-            print("Loading encoded file {}".format(filename))
-        with open(tt_dir+filename,"rb") as file:
-            temp = pickle.load(file)
-            #arr = np.array(temp)
-            arr = tf.cast(temp,dtype=tf.int64)
-            arrs[filename] = arr
-
-    vocabs = []
-    for vocab_name in vocab_files:
-        if verbose:
-            print("Loading vocab file {}".format(vocab_name))
-        with open(tt_dir+vocab_name,"rb") as vocab_file:
-            #temp = pickle.load(vocab_file)
-            #vocabs.append(temp)
-            vocabs.append(pickle.load(vocab_file))
-
-    return arrs, vocabs[0], vocabs[1]
-
-enc_files, en_vocab, is_vocab = get_encoded(verbose=True,subset=[200000,50000])
 
 # hyperparameters
 BUFFER_SIZE = 20000
@@ -49,20 +21,9 @@ d_model = 128
 dff = 512
 num_heads = 8
 
-input_vocab_size = len(en_vocab) + 4 # 4 for pad, unk and BOS/EOS.
-target_vocab_size = len(is_vocab) + 4
 dropout_rate = 0.1
 
 EPOCHS = 20
-
-# datasets
-train_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[0]], enc_files[files[2]]))
-train_dataset = train_dataset.cache()
-train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE,padded_shapes=([None],[None]))
-train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-val_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[1]], enc_files[files[3]]))
-val_dataset = val_dataset.padded_batch(BATCH_SIZE,padded_shapes=([None],[None]))
 
 
 # helper fxn, extracts most of the math for the positional encoding
@@ -378,6 +339,52 @@ def create_masks(inp, tar):
     return enc_padding_mask, combined_mask, dec_padding_mask
 
 if __name__ == "__main__":
+    def get_encoded(verbose=False, subset=None):
+        global files
+        filelist_copy = []
+        if subset:
+            for filename in files:
+                filelist_copy.append("{0}{1}-{2}".format(filename, subset[0], subset[1]))
+                files = filelist_copy
+        else:
+            filelist_copy = files
+
+        arrs = {}
+        for filename in filelist_copy:
+            if verbose:
+                print("Loading encoded file {}".format(filename))
+            with open(tt_dir + filename, "rb") as file:
+                temp = pickle.load(file)
+                # arr = np.array(temp)
+                arr = tf.cast(temp, dtype=tf.int64)
+                arrs[filename] = arr
+
+        vocabs = []
+        for vocab_name in vocab_files:
+            if verbose:
+                print("Loading vocab file {}".format(vocab_name))
+            with open(tt_dir + vocab_name, "rb") as vocab_file:
+                # temp = pickle.load(vocab_file)
+                # vocabs.append(temp)
+                vocabs.append(pickle.load(vocab_file))
+
+        return arrs, vocabs[0], vocabs[1]
+
+
+    enc_files, en_vocab, is_vocab = get_encoded(verbose=True, subset=[200000, 50000])
+
+    # datasets
+    train_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[0]], enc_files[files[2]]))
+    train_dataset = train_dataset.cache()
+    train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE, padded_shapes=([None], [None]))
+    train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+    val_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[1]], enc_files[files[3]]))
+    val_dataset = val_dataset.padded_batch(BATCH_SIZE, padded_shapes=([None], [None]))
+
+    input_vocab_size = len(en_vocab) + 4  # 4 for pad, unk and BOS/EOS.
+    target_vocab_size = len(is_vocab) + 4
+
     class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         def __init__(self, d_model, warmup_steps=4000):
             super(CustomSchedule, self).__init__()
@@ -435,6 +442,9 @@ if __name__ == "__main__":
       print ('Latest checkpoint restored!!')
 
       if save_model:
+          transformer.save_weights(tt_dir)
+          print("Model weights saved!")
+          """
           #transformer.save(tt_dir + "saved_model")
           dummy = tf.zeros([64,39])
           dummy_tar = tf.zeros([64,39])[:, :-1]
@@ -442,6 +452,7 @@ if __name__ == "__main__":
           __,__ = transformer(dummy,dummy_tar,True,d1,d2,d3)
           tf.saved_model.save(transformer,tt_dir+"saved_model")
           print("Model saved!")
+          """
 
     # The @tf.function trace-compiles train_step into a TF graph for faster
     # execution. The function specializes to the precise shape of the argument
