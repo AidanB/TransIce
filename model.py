@@ -8,6 +8,8 @@ import time
 with open("configs","r") as config_file:
      lines = config_file.readlines()
      tt_dir = lines[0].strip().split("= ")[1].strip("\"")
+     subset_l = lines[1].strip().split("= ")[1].strip("\"")
+     subset = False if subset_l == "False" else subset_l
 
 files = ["enc_en_training", "enc_en_test", "enc_is_training", "enc_is_test"]
 vocab_files = ["en_vocab", "is_vocab"]
@@ -371,7 +373,7 @@ if __name__ == "__main__":
         return arrs, vocabs[0], vocabs[1]
 
 
-    enc_files, en_vocab, is_vocab = get_encoded(verbose=True, subset=[200000, 50000])
+    enc_files, en_vocab, is_vocab = get_encoded(verbose=True, subset=subset)
 
     # datasets
     train_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[0]], enc_files[files[2]]))
