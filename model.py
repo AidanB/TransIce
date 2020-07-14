@@ -10,6 +10,8 @@ with open("configs","r") as config_file:
      tt_dir = lines[0].strip().split("= ")[1].strip("\"")
      subset_l = lines[1].strip().split("= ")[1].strip("\"")
      subset = False if subset_l == "False" else subset_l
+     checkpoint_path = lines[2].strip().split("= ")[1].strip("\"")
+
 
 files = ["enc_en_training", "enc_en_test", "enc_is_training", "enc_is_test"]
 vocab_files = ["en_vocab", "is_vocab"]
@@ -429,8 +431,6 @@ if __name__ == "__main__":
                               pe_input=input_vocab_size,
                               pe_target=target_vocab_size,
                               rate=dropout_rate)
-
-    checkpoint_path = "C:/Users/Aidan/Documents/model checkpoints/train"
 
     ckpt = tf.train.Checkpoint(transformer=transformer,
                                optimizer=optimizer)
