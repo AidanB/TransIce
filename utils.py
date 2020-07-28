@@ -126,7 +126,6 @@ def encode(vocabs, counts, unk_thresh=0,max_length=40,max_sents=None):
 
     def enc_file(filename,lang):
         all_enc = []
-        adj_max_len = max_length - 2 # dummy variable to account for BOS/EOS tokens so I don't have to say max_length - 2 every time
 
         unk_code = True if filename in for_unk else False # should the file substitute unk tokens?
         break_thresh = max_train if unk_code else max_test # which max sents to use
@@ -147,12 +146,16 @@ def encode(vocabs, counts, unk_thresh=0,max_length=40,max_sents=None):
                     else:
                         enc.append(1)
 
-                if len(enc) < adj_max_len:
-                    enc = enc + [0 for x in range(adj_max_len - len(enc))]
-                elif len(enc) > adj_max_len:
-                    enc = enc[0:adj_max_len]
+                if len(enc) >= max_length:
+                    enc = enc[0:max_length-1] # -1 because we're going to add the EOS token
 
-                enc.append(3)
+                enc.append(3)  # add EOS token. must go here so it gets added after truncation but before padding
+
+                if len(enc) < max_length: # truncate to max length if seq too long
+                    enc = enc + [0 for x in range(max_length - len(enc))]
+                if len(enc) != max_length: # for debugging but I mean might as well leave them in. Pipeline will break later if this isn't true anyway.
+                    print(enc,len(enc))
+                    exit(1)
 
                 all_enc.append(enc)
 
