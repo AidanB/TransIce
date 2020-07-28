@@ -116,7 +116,7 @@ def get_vocab(unk_thresh=2,verbose=False):
 
 # max length includes <s> and </s> tokens
 # i.e. max length 40 contains 38 word tokens
-def encode(vocabs, counts, unk_thresh=2,max_length=40,max_sents=None):
+def encode(vocabs, counts, unk_thresh=0,max_length=40,max_sents=None):
     files = [target_dir + "en_training", target_dir + "en_test", target_dir + "is_training", target_dir + "is_test"]
     for_unk = [target_dir + "en_training", target_dir + "is_training"]
     langs = [0,0,1,1]
@@ -148,7 +148,7 @@ def encode(vocabs, counts, unk_thresh=2,max_length=40,max_sents=None):
                         enc.append(1)
 
                 if len(enc) < adj_max_len:
-                    enc = [0 for x in range(adj_max_len - len(enc))] + enc
+                    enc = enc + [0 for x in range(adj_max_len - len(enc))]
                 elif len(enc) > adj_max_len:
                     enc = enc[0:adj_max_len]
 
@@ -181,3 +181,4 @@ def encode(vocabs, counts, unk_thresh=2,max_length=40,max_sents=None):
 
 en_vocab, is_vocab, en_count, is_count = get_vocab(verbose=True)
 encode([en_vocab,is_vocab],[en_count,is_count],max_sents=[200000,50000])
+#encode([en_vocab,is_vocab],[en_count,is_count])
