@@ -24,10 +24,16 @@ def numlist_to_str(inList):
 
 def create_FeatureLists(inList):
     feat_step1 = [Feature(int64_list=Int64List(value=x)) for x in inList]
-    feat_step2 = FeatureList(feature=feat_step1)
-    feat_lists = FeatureLists(feature_list={"features": feat_step2})
+    #feat_step2 = [FeatureList(feature=x) for x in feat_step1]
+    feat_step2 = []
+    for feat in feat_step1:
+        temp = [feat]
+        feat_list = FeatureList(feature=temp)
+        feat_step2.append(feat_list)
+    feat_lists = [FeatureLists(feature_list={"features": x}) for x in feat_step2]
+    seq_exs = [SequenceExample(feature_lists=x) for x in feat_lists]
 
-    return feat_lists
+    return seq_exs
 
 list_en_train = load_list_file(list_filenames[0])
 list_en_test = load_list_file(list_filenames[1])
@@ -39,11 +45,13 @@ fl_en_test = create_FeatureLists(list_en_test)
 fl_is_train = create_FeatureLists(list_is_train)
 fl_is_test = create_FeatureLists(list_is_test)
 
-towrite = {"en_train":SequenceExample(feature_lists=fl_en_train),"en_test":SequenceExample(feature_lists=fl_en_test),"is_train":SequenceExample(feature_lists=fl_is_train),"is_test":SequenceExample(feature_lists=fl_is_test),}
+#towrite = {"en_train":SequenceExample(feature_lists=fl_en_train),"en_test":SequenceExample(feature_lists=fl_en_test),"is_train":SequenceExample(feature_lists=fl_is_train),"is_test":SequenceExample(feature_lists=fl_is_test),}
+towrite = {"en_train":fl_en_train,"en_test":fl_en_test,"is_train":fl_is_train,"is_test":fl_is_test}
 #print(towrite_en_train)
 
 for name in towrite:
-    se = towrite[name]
+    ses = towrite[name]
     filename = name + ".tfrecord"
     with TFRecordWriter(filename) as writer:
-        writer.write(se.SerializeToString())
+        for ex in ses:
+            writer.write(ex.SerializeToString())

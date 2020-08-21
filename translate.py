@@ -2,50 +2,11 @@ import tensorflow as tf
 import pickle
 from model import *
 
-saved_model_dir = "D:/train_test/saved_model/"
-tt_dir = "D:/train_test/"
-
-with open(tt_dir+"en_vocab","rb") as en_v_file:
-    en_vocab = pickle.load(en_v_file)
-
-with open(tt_dir+"is_vocab","rb") as is_v_file:
-    is_vocab = pickle.load(is_v_file)
 
 # reverses direction of encoding for a dict
 # because current vocab dicts are token:ind
 def fliperooni(inDict):
     return {v:k for (k,v) in inDict.items()}
-
-r_en_vocab = fliperooni(en_vocab)
-r_is_vocab = fliperooni(is_vocab)
-
-# hyperparameters
-BUFFER_SIZE = 20000
-BATCH_SIZE = 64
-
-num_layers = 4
-d_model = 128
-dff = 512
-num_heads = 8
-
-input_vocab_size = len(en_vocab) + 4 # 4 for pad, unk and BOS/EOS.
-target_vocab_size = len(is_vocab) + 4
-dropout_rate = 0.1
-
-EPOCHS = 20
-
-MAX_LENGTH = 40
-
-transformer = Transformer(num_layers, d_model, num_heads, dff,
-                              input_vocab_size, target_vocab_size,
-                              pe_input=input_vocab_size,
-                              pe_target=target_vocab_size,
-                              rate=dropout_rate)
-#transformer = tf.keras.models.load_model(saved_model_dir)
-
-
-
-to_translate = input("Type English sentence to translate: \n")
 
 def tokenize_input(inStr):
     new_str = inStr.lower()
@@ -111,20 +72,7 @@ def create_masks(inp, tar):
 
     return enc_padding_mask, combined_mask, dec_padding_mask
 
-# do a dummy push
-a = tf.expand_dims(tf.cast([2,4,5,6,3],dtype=tf.int32), 0)
-b = tf.expand_dims(tf.cast([2],dtype=tf.int32), 0)
-m1,m2,m3 = create_masks(a,b)
 
-dummy1,dummy2 = transformer(a,b,True,m1,m2,m3)
-
-x = transformer.trainable_weights
-
-transformer.load_weights(tt_dir)
-
-y = transformer.trainable_weights
-
-print(x == y)
 def evaluate(enc_inp):
     encoder_input = tf.expand_dims(enc_inp, 0)
 
@@ -180,6 +128,62 @@ def translate(enc_sent):
     print('Predicted translation: {}'.format(predicted_sentence))
 
 
-enc = encode_string(tokenize_input(to_translate))
+if __name__ == "__main__":
+    saved_model_dir = "D:/train_test/saved_model/"
+    tt_dir = "D:/train_test/"
 
-translate(enc)
+    with open(tt_dir + "en_vocab", "rb") as en_v_file:
+        en_vocab = pickle.load(en_v_file)
+
+    with open(tt_dir + "is_vocab", "rb") as is_v_file:
+        is_vocab = pickle.load(is_v_file)
+
+    r_en_vocab = fliperooni(en_vocab)
+    r_is_vocab = fliperooni(is_vocab)
+
+    # hyperparameters
+    BUFFER_SIZE = 20000
+    BATCH_SIZE = 32
+
+    num_layers = 4
+    d_model = 128
+    dff = 512
+    num_heads = 8
+
+    input_vocab_size = len(en_vocab) + 4  # 4 for pad, unk and BOS/EOS.
+    target_vocab_size = len(is_vocab) + 4
+    dropout_rate = 0.1
+
+    EPOCHS = 20
+
+    MAX_LENGTH = 40
+
+
+    transformer = Transformer(num_layers, d_model, num_heads, dff,
+                              input_vocab_size, target_vocab_size,
+                              pe_input=input_vocab_size,
+                              pe_target=target_vocab_size,
+                              rate=dropout_rate)
+
+    # do a dummy push
+    a = tf.expand_dims(tf.cast([2, 4, 5, 6, 3], dtype=tf.int32), 0)
+    b = tf.expand_dims(tf.cast([2], dtype=tf.int32), 0)
+    m1, m2, m3 = create_masks(a, b)
+
+    dummy1, dummy2 = transformer(a, b, True, m1, m2, m3)
+
+    x = transformer.trainable_weights
+
+    transformer.load_weights(tt_dir)
+
+    y = transformer.trainable_weights
+
+    print(x == y)
+
+    # transformer = tf.keras.models.load_model(saved_model_dir)
+
+    to_translate = input("Type English sentence to translate: \n")
+
+    enc = encode_string(tokenize_input(to_translate))
+
+    translate(enc)

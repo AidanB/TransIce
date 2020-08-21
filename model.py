@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import pickle
 import time
+from translate import *
 
 #tt_dir = "D:/train_test/"
 
@@ -12,13 +13,17 @@ with open("configs","r") as config_file:
      subset = False if subset_l == "False" else subset_l
      checkpoint_path = lines[2].strip().split("= ")[1].strip("\"")
 
+     if subset:
+         a,b = subset.split(", ")
+         subset = [int(a),int(b)]
+
 
 files = ["enc_en_training", "enc_en_test", "enc_is_training", "enc_is_test"]
 vocab_files = ["en_vocab", "is_vocab"]
 
 # hyperparameters
 BUFFER_SIZE = 20000
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 
 num_layers = 4
 d_model = 128
@@ -436,25 +441,12 @@ if __name__ == "__main__":
                                optimizer=optimizer)
 
     ckpt_manager = tf.train.CheckpointManager(ckpt, checkpoint_path, max_to_keep=5)
-    save_model = True
+    save_model = False
 
     # if a checkpoint exists, restore the latest checkpoint.
     if ckpt_manager.latest_checkpoint:
       ckpt.restore(ckpt_manager.latest_checkpoint)
       print ('Latest checkpoint restored!!')
-
-      if save_model:
-          transformer.save_weights(tt_dir)
-          print("Model weights saved!")
-          """
-          #transformer.save(tt_dir + "saved_model")
-          dummy = tf.zeros([64,39])
-          dummy_tar = tf.zeros([64,39])[:, :-1]
-          d1,d2,d3 = create_masks(dummy,dummy_tar)
-          __,__ = transformer(dummy,dummy_tar,True,d1,d2,d3)
-          tf.saved_model.save(transformer,tt_dir+"saved_model")
-          print("Model saved!")
-          """
 
     # The @tf.function trace-compiles train_step into a TF graph for faster
     # execution. The function specializes to the precise shape of the argument
@@ -476,7 +468,7 @@ if __name__ == "__main__":
         enc_padding_mask, combined_mask, dec_padding_mask = create_masks(inp, tar_inp)
 
         with tf.GradientTape() as tape:
-            print("{0}\n{1}\n{2}\n{3}\n{4}\n".format(inp.shape,tar_inp.shape,enc_padding_mask.shape,combined_mask.shape,dec_padding_mask.shape)) # debug
+            #print("{0}\n{1}\n{2}\n{3}\n{4}\n".format(inp.shape,tar_inp.shape,enc_padding_mask.shape,combined_mask.shape,dec_padding_mask.shape)) # debug
             predictions, _ = transformer(inp, tar_inp,
                                          True,
                                          enc_padding_mask,
@@ -502,8 +494,6 @@ if __name__ == "__main__":
 
         # inp -> portuguese, tar -> english
         for (batch, (inp, tar)) in enumerate(train_dataset):
-            print(inp.shape)
-            print(tar.shape)
             train_step(inp, tar)
 
             if batch % 50 == 0:
@@ -522,3 +512,15 @@ if __name__ == "__main__":
                                                             train_accuracy.result()))
 
         print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start))
+        if save_model:
+            transformer.save_weights(tt_dir)
+            print("Model weights saved!")
+            """
+            #transformer.save(tt_dir + "saved_model")
+            dummy = tf.zeros([64,39])
+            dummy_tar = tf.zeros([64,39])[:, :-1]
+            d1,d2,d3 = create_masks(dummy,dummy_tar)
+            __,__ = transformer(dummy,dummy_tar,True,d1,d2,d3)
+            tf.saved_model.save(transformer,tt_dir+"saved_model")
+            print("Model saved!")
+            """
