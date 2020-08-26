@@ -348,51 +348,73 @@ def create_masks(inp, tar):
     return enc_padding_mask, combined_mask, dec_padding_mask
 
 if __name__ == "__main__":
-    def get_encoded(verbose=False, subset=None):
-        global files
-        filelist_copy = []
-        if subset:
-            for filename in files:
-                filelist_copy.append("{0}{1}-{2}".format(filename, subset[0], subset[1]))
-                files = filelist_copy
-        else:
-            filelist_copy = files
+    filelist = ["en_train.tfrecord","en_test.tfrecord","is_train.tfrecord","is_test.tfrecord"]
 
-        arrs = {}
-        for filename in filelist_copy:
-            if verbose:
-                print("Loading encoded file {}".format(filename))
-            with open(tt_dir + filename, "rb") as file:
-                temp = pickle.load(file)
-                # arr = np.array(temp)
-                arr = tf.cast(temp, dtype=tf.int64)
-                arrs[filename] = arr
+    input_vocab_size = 280614 # hardcoding these for now because I can't be assed to deal with dynamically loading this right now
+    target_vocab_size = 467210
 
-        vocabs = []
-        for vocab_name in vocab_files:
-            if verbose:
-                print("Loading vocab file {}".format(vocab_name))
-            with open(tt_dir + vocab_name, "rb") as vocab_file:
-                # temp = pickle.load(vocab_file)
-                # vocabs.append(temp)
-                vocabs.append(pickle.load(vocab_file))
+    input_vocab_size += 4 # 4 for pad, unk and BOS/EOS.
+    target_vocab_size += 4 # this is still necessary even with the hardcoding above
 
-        return arrs, vocabs[0], vocabs[1]
+    feature_description = {
+        'features': tf.io.FixedLenSequenceFeature(shape=[40], dtype=tf.int64)
+    }
+
+    def _parse_function(example_proto):
+        # Parse the input `tf.SequenceExample` proto using the dictionary above.
+        return tf.io.parse_single_sequence_example(example_proto, sequence_features=feature_description)
+
+    en_train_dataset = tf.data.TFRecordDataset(["en_train.tfrecord"])
+    is_train_dataset = tf.data.TFRecordDataset(["is_train.tfrecord"])
+    en_test_dataset = tf.data.TFRecordDataset(["en_test.tfrecord"])
+    is_test_dataset = tf.data.TFRecordDataset(["is_test.tfrecord"])
+    en_train_dataset = en_train_dataset.map(_parse_function)
+    is_train_dataset = is_train_dataset.map(_parse_function)
+
+    def train_generator():
+        global en_train_dataset
+        global is_train_dataset
+
+        exhausted = 0
+        """
+        try:
+            raw_en = next(iter(en_train_dataset))
+            raw_is = next(iter(is_train_dataset))
+        except RuntimeError:
+            en_train_dataset = tf.data.TFRecordDataset(["en_train.tfrecord"])
+            is_train_dataset = tf.data.TFRecordDataset(["is_train.tfrecord"])
+        """
+        while exhausted < 200000: # hardcoded here, really need to change that
+            count = 0
+            batch_en = []
+            batch_is = []
+            while count < BATCH_SIZE and exhausted < 200000:
+                raw_en = next(iter(en_train_dataset))
+                raw_is = next(iter(is_train_dataset))
+                batch_en.append(raw_en[1]["features"]) # this seems to just be what I need to actually index to the tensor itself ¯\_(ツ)_/¯
+                batch_is.append(raw_is[1]["features"])
+                count += 1
+                exhausted += 1
+
+            en_ten = tf.reshape(tf.convert_to_tensor(batch_en), [BATCH_SIZE,40]) # currently hard codes sequence length
+            is_ten = tf.reshape(tf.convert_to_tensor(batch_is), [BATCH_SIZE,40])
+            yield ((en_ten,is_ten))
 
 
-    enc_files, en_vocab, is_vocab = get_encoded(verbose=True, subset=subset)
+        """
+        raw_en = next(iter(en_train_dataset))
+        raw_is = next(iter(is_train_dataset))
 
-    # datasets
-    train_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[0]], enc_files[files[2]]))
-    train_dataset = train_dataset.cache()
-    train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE, padded_shapes=([None], [None]))
-    train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        yield (raw_en[1]["features"],raw_is[1]["features"])
+        """
 
-    val_dataset = tf.data.Dataset.from_tensor_slices((enc_files[files[1]], enc_files[files[3]]))
-    val_dataset = val_dataset.padded_batch(BATCH_SIZE, padded_shapes=([None], [None]))
+    def val_generator():
+        raw_en = next(iter(en_test_dataset))
+        raw_is = next(iter(is_test_dataset))
+        parsed_en = tf.train.SequenceExample.FromString(raw_en.numpy())
+        parsed_is = tf.train.SequenceExample.FromString(raw_is.numpy())
 
-    input_vocab_size = len(en_vocab) + 4  # 4 for pad, unk and BOS/EOS.
-    target_vocab_size = len(is_vocab) + 4
+        yield parsed_en, parsed_is
 
     class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         def __init__(self, d_model, warmup_steps=4000):
@@ -488,12 +510,13 @@ if __name__ == "__main__":
 
     for epoch in range(EPOCHS):
         start = time.time()
+        train_data = train_generator()
 
         train_loss.reset_states()
         train_accuracy.reset_states()
 
-        # inp -> portuguese, tar -> english
-        for (batch, (inp, tar)) in enumerate(train_dataset):
+        # inp -> english, tar -> icelandic
+        for (batch, (inp, tar)) in enumerate(train_data):
             train_step(inp, tar)
 
             if batch % 50 == 0:
